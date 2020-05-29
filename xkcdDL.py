@@ -99,16 +99,23 @@ def download(number, dlImg, dlJson):
     if dlImg:
         url = content["img"]
         ext = url.split('.')[-1]
+        url2x = "{}_2x.{}".format(url[:-(len(ext)+1)], ext)
         name = "{}.{}".format(number, ext)
 
-        r = requests.get(url, stream=True)
-        if r.status_code == 200:
+        try:
+            r = requests.get(url2x, stream=True)
+            r.raise_for_status()
             with open(name, 'wb') as imgFile:
                 shutil.copyfileobj(r.raw, imgFile)
-        else:
-            print('{}Unable to download image at "{}" (Error: {}){}'.format(BOLDRED, url, r.status_code, RESET))
+        except requests.exceptions.RequestException:
+            try:
+                r = requests.get(url, stream=True)
+                r.raise_for_status()
+                with open(name, 'wb') as imgFile:
+                    shutil.copyfileobj(r.raw, imgFile)
+            except requests.exceptions.RequestException:
+                print('{}Unable to download image at "{}" (Error: {}){}'.format(BOLDRED, url, r.status_code, RESET))
         del r
-
 # ########################################################################### #
 
 
