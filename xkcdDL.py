@@ -86,16 +86,12 @@ def download(number, dlImg, dlJson):
     r = requests.get('https://xkcd.com/{}/info.0.json'.format(number))
     if r.status_code == 200:
         content = r.json()
-        if dlJson:
-            jsonFileName = "{}.json".format(number)
-            with open(jsonFileName, "w") as jsonFile:
-                json.dump(content, jsonFile, indent=4)
         del r
     else:
         print('{}Error: {}{}'.format(BOLDRED, r.status_code, RESET))
         return
 
-    #Download image
+    #Download and save image
     if dlImg:
         url = content["img"]
         ext = url.split('.')[-1]
@@ -107,6 +103,7 @@ def download(number, dlImg, dlJson):
             r.raise_for_status()
             with open(name, 'wb') as imgFile:
                 shutil.copyfileobj(r.raw, imgFile)
+            content["img_2x"] = url2x
         except requests.exceptions.RequestException:
             try:
                 r = requests.get(url, stream=True)
@@ -116,6 +113,12 @@ def download(number, dlImg, dlJson):
             except requests.exceptions.RequestException:
                 print('{}Unable to download image at "{}" (Error: {}){}'.format(BOLDRED, url, r.status_code, RESET))
         del r
+
+    #Save JSON
+    if dlJson:
+        jsonFileName = "{}.json".format(number)
+        with open(jsonFileName, "w") as jsonFile:
+            json.dump(content, jsonFile, indent=4)
 # ########################################################################### #
 
 
