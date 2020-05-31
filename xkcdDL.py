@@ -6,6 +6,7 @@
 import sys
 import json
 import shutil
+import time
 import argparse
 import colored
 import requests
@@ -33,6 +34,7 @@ def main(args):
     parser = ArgumentParser()
     parser.add_argument("-i", "--image", action="store_const", dest="image", const=True, default=False, help="Save image(s) only")
     parser.add_argument("-j", "--json", action="store_const", dest="json", const=True, default=False, help="Save JSON file(s) only")
+    parser.add_argument("-d", "--delay", type=float, dest="sec", default=0.5, help="Seconds of delay between comic requests (default: 0.5sec)")
     parser.add_argument('N', nargs='*', help="Comic number(s) or range(s) (e.g. 1045 or 56-129)")
     args = parser.parse_args()
 
@@ -52,8 +54,10 @@ def main(args):
         if len(comic) > 1:
             for i in range(comic[0], comic[1]+1):
                 download(i, (not args.json), (not args.image))
+                time.sleep(args.sec)
         else:
             download(comic[0], (not args.json), (not args.image))
+            time.sleep(args.sec)
 
     print('{}Done!{}'.format(BOLDGREEN, RESET))
 # ########################################################################### #
