@@ -6,6 +6,7 @@
 import sys
 import json
 import shutil
+import argparse
 import colored
 import requests
 # ########################################################################### #
@@ -28,45 +29,31 @@ def main(args):
     Args:
         args (list): List of arguments
     """
-    if not args:
-        print('{}No comics specified for download{}'.format(BOLDRED, RESET))
-        printHelp()
-        return
 
-    dlImg = True
-    dlJson = True
+    parser = ArgumentParser()
+    parser.add_argument("-i", "--image", action="store_const", dest="image", const=True, default=False, help="Save image(s) only")
+    parser.add_argument("-j", "--json", action="store_const", dest="json", const=True, default=False, help="Save JSON file(s) only")
+    parser.add_argument('N', nargs='*', help="Comic number(s) or range(s) (e.g. 1045 or 56-129)")
+    args = parser.parse_args()
+
+    #Error if no comics supplied
+    if not args.N:
+        parser.error("At least one comic number has to be specified")
+
+    #Split ranges and cast number to integer
     comics = []
-
-    for arg in args:
-        try:
-            comic = [int(i) for i in arg.split('-')]
-            comics.append(comic)
-        except ValueError:
-            if arg in ('-h', '--help'):
-                printHelp()
-                return
-            if arg in ('-i', '--images'):
-                dlJson = False
-            elif arg in ('-j', '--jsons'):
-                dlImg = False
-            else:
-                print('{}Unknown argument: "{}"{}'.format(BOLDRED, arg, RESET))
-                printHelp()
-                return
-
-    if not comics:
-        print('{}No comics specified for download{}'.format(BOLDRED, RESET))
-        printHelp()
-        return
+    for c in args.N:
+        comic = [int(i) for i in c.split('-')]
+        comics.append(comic)
 
     print('{}Downloading comics...{}'.format(BOLD, RESET))
 
     for comic in comics:
         if len(comic) > 1:
             for i in range(comic[0], comic[1]+1):
-                download(i, dlImg, dlJson)
+                download(i, (not args.json), (not args.image))
         else:
-            download(comic[0], dlImg, dlJson)
+            download(comic[0], (not args.json), (not args.image))
 
     print('{}Done!{}'.format(BOLDGREEN, RESET))
 # ########################################################################### #
@@ -122,23 +109,19 @@ def download(number, dlImg, dlJson):
 # ########################################################################### #
 
 
-# --------------------------------------------------------------------------- #
-def printHelp():
-    """Print help"""
-    print("xkcdDL -- Download xkcd comic images and info JSONs\n")
-    print("Usage: xkcdDL [-i][-j] N [N...]\n")
-    print("Options:")
-    print("\t-i: Save images only")
-    print("\t-j: Save JSONs only")
-    print("\nN: Comic number or range (e.g. 1045 or 56-129)")
 # ########################################################################### #
+class ArgumentParser(argparse.ArgumentParser):
+    """ArgumentParser subclass that prints colored error messages"""
+    def error(self, message):
+        self.exit(2, "{}ERROR: {}{}\n".format(BOLDRED, message, RESET))
+# --------------------------------------------------------------------------- #
 
 
 # --------------------------------------------------------------------------- #
 # Default
 if __name__ == "__main__":
     try:
-        main(sys.argv[1:])
+        main(sys.argv)
     except KeyboardInterrupt:
         print('{}Aborted!{}'.format(BOLDRED, RESET))
 # ########################################################################### #
