@@ -14,6 +14,12 @@ import requests
 
 
 # --------------------------------------------------------------------------- #
+VERSION = "0.1"
+NAME = "xkcdDL"
+# ########################################################################### #
+
+
+# --------------------------------------------------------------------------- #
 # CONSTANTS
 BOLD = colored.attr("bold")
 RESET = colored.attr("reset")
@@ -21,6 +27,7 @@ RED = colored.fg("red")
 GREEN = colored.fg("green")
 BOLDRED = BOLD + RED
 BOLDGREEN = BOLD + GREEN
+HEADERS = {'User-Agent': "{}/{}".format(NAME, VERSION)}
 # ########################################################################### #
 
 
@@ -74,7 +81,7 @@ def download(number, dlImg, dlJson):
     print("Downloading #{}".format(number))
 
     #Download JSON
-    r = requests.get('https://xkcd.com/{}/info.0.json'.format(number))
+    r = requests.get('https://xkcd.com/{}/info.0.json'.format(number), headers=HEADERS)
     if r.status_code == 200:
         content = r.json()
         del r
@@ -90,14 +97,14 @@ def download(number, dlImg, dlJson):
         name = "{}.{}".format(number, ext)
 
         try:
-            r = requests.get(url2x, stream=True)
+            r = requests.get(url2x, stream=True, headers=HEADERS)
             r.raise_for_status()
             with open(name, 'wb') as imgFile:
                 shutil.copyfileobj(r.raw, imgFile)
             content["img_2x"] = url2x
         except requests.exceptions.RequestException:
             try:
-                r = requests.get(url, stream=True)
+                r = requests.get(url, stream=True, headers=HEADERS)
                 r.raise_for_status()
                 with open(name, 'wb') as imgFile:
                     shutil.copyfileobj(r.raw, imgFile)
