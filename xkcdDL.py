@@ -4,6 +4,7 @@
 # --------------------------------------------------------------------------- #
 # IMPORTS
 import sys
+import os
 import json
 import shutil
 import time
@@ -14,7 +15,7 @@ import requests
 
 
 # --------------------------------------------------------------------------- #
-VERSION = "0.1"
+VERSION = "0.2"
 NAME = "xkcdDL"
 # ########################################################################### #
 
@@ -45,15 +46,21 @@ def main(args):
     parser.add_argument('N', nargs='*', help="Comic number(s) or range(s) (e.g. 1045 or 56-129)")
     args = parser.parse_args()
 
-    #Error if no comics supplied
-    if not args.N:
-        parser.error("At least one comic number has to be specified")
-
-    #Split ranges and cast number to integer
-    comics = []
-    for c in args.N:
-        comic = [int(i) for i in c.split('-')]
-        comics.append(comic)
+    if args.N:
+        #Split ranges and cast number to integer
+        comics = []
+        for c in args.N:
+            comic = [int(i) for i in c.split('-')]
+            comics.append(comic)
+    else:
+        #Find missing comics
+        try:
+            comics = findMissing()
+        except requests.exceptions.RequestException as e:
+            parser.error("Unable to get info of latest comic ({})".format(str(e)))
+        except NoMissingException:
+            print('{}No new or missing comics{}'.format(BOLDGREEN, RESET))
+            return
 
     print('{}Downloading comics...{}'.format(BOLD, RESET))
 
@@ -69,6 +76,38 @@ def main(args):
     print('{}Done!{}'.format(BOLDGREEN, RESET))
 # ########################################################################### #
 
+# --------------------------------------------------------------------------- #
+def findMissing():
+    """Find new and missing comics and return their numbers as a list or raises
+    exceptions if no comics are missing
+
+    Raises:
+        requests.exceptions.RequestException: Lookup of latest comic failed
+        NoMissingException: No missing/new comics
+    """
+    #Get number of latest comic
+    r = requests.get('https://xkcd.com/info.0.json', headers=HEADERS)
+    r.raise_for_status()
+    content = r.json()
+    latest = content["num"]
+    del r
+
+    #Find missing JSONs
+    missing = []
+    for i in range(1, latest+1):
+        if not os.path.isfile("{}.json".format(i)):
+            missing.append([i])
+
+    #Remove 404 as this comic does not exist
+    missing.remove([404])
+
+    #Raise exception if no items in missing
+    if not missing:
+        raise NoMissingException()
+
+    #Return missing items
+    return missing
+# ########################################################################### #
 
 # --------------------------------------------------------------------------- #
 def download(number, dlImg, dlJson):
@@ -125,6 +164,12 @@ class ArgumentParser(argparse.ArgumentParser):
     """ArgumentParser subclass that prints colored error messages"""
     def error(self, message):
         self.exit(2, "{}ERROR: {}{}\n".format(BOLDRED, message, RESET))
+# --------------------------------------------------------------------------- #
+
+
+# ########################################################################### #
+class NoMissingException(Exception):
+    """No missing or new comics"""
 # --------------------------------------------------------------------------- #
 
 
